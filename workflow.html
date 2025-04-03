@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drug Discovery Workflow</title>
+    <style>
+        :root {
+            --primary-color: #ffffff;
+            --accent-color: #00b4d8;
+            --bg-color: #000000;
+            --card-bg: #111111;
+            --text-color: #ffffff;
+            --text-light: #a0a0a0;
+            --border-color: #333333;
+            --hover-color: #1a1a1a;
+            --prompt-bg: #1a1a1a;
+            --prompt-border: #2a2a2a;
+            --prompt-number-color: #ff6b6b;
+            --prompt-text-color: #e0e0e0;
+            --prompt-hover: #222222;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .workflow-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+            margin-top: 20px;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            font-weight: 600;
+            color: var(--primary-color);
+            text-align: center;
+            margin-bottom: 60px;
+            letter-spacing: -0.5px;
+        }
+
+        .step {
+            margin-bottom: 0;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            background-color: var(--card-bg);
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            margin: 10px 0;
+        }
+
+        .step:hover {
+            border-color: var(--accent-color);
+            transform: translateY(-1px);
+        }
+
+        .step-header {
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--card-bg);
+        }
+
+        .step-number {
+            font-size: 1.1em;
+            font-weight: 500;
+            color: var(--primary-color);
+            margin: 0;
+        }
+
+        .step-summary {
+            font-size: 0.9em;
+            color: var(--text-light);
+            margin-top: 4px;
+            font-style: italic;
+        }
+
+        .toggle-icon {
+            color: var(--accent-color);
+            font-size: 1.2em;
+            transition: transform 0.2s ease;
+            opacity: 0.7;
+        }
+
+        .step-content {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            background-color: var(--card-bg);
+            flex-grow: 1;
+        }
+
+        .step.active .step-content {
+            padding: 0 20px 20px;
+            max-height: none;
+        }
+
+        .step.active .toggle-icon {
+            transform: rotate(180deg);
+            opacity: 1;
+        }
+
+        .substep {
+            margin: 12px 0;
+            padding-left: 32px;
+            position: relative;
+            color: var(--text-light);
+            font-size: 0.95em;
+            line-height: 1.4;
+        }
+
+        .substep::before {
+            content: attr(data-number);
+            position: absolute;
+            left: 0;
+            color: var(--accent-color);
+            opacity: 0.7;
+            font-weight: 500;
+            width: 28px;
+            text-align: right;
+            padding-right: 4px;
+        }
+
+        .substep-header {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 4px 0;
+        }
+
+        .substep-toggle {
+            color: var(--accent-color);
+            font-size: 0.8em;
+            transition: transform 0.2s ease;
+            opacity: 0.7;
+        }
+
+        .substep.active .substep-toggle {
+            transform: rotate(180deg);
+            opacity: 1;
+        }
+
+        .substep-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            margin-top: 12px;
+            padding-left: 20px;
+        }
+
+        .substep.active .substep-content {
+            max-height: none;
+        }
+
+        .prompt {
+            background-color: var(--prompt-bg);
+            border: 1px solid var(--prompt-border);
+            padding: 16px;
+            margin: 12px 0;
+            border-radius: 6px;
+            font-size: 0.9em;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        .viz-box {
+            background-color: transparent;
+            border: 1px solid rgba(0, 180, 0, 0.3);
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 2px;
+        }
+
+        .viz-title {
+            color: #ffffff;
+            font-size: 0.85em;
+            margin-bottom: 6px;
+            opacity: 0.9;
+        }
+
+        .viz-tools {
+            color: #ffffff;
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        .viz-tool-item {
+            color: rgba(0, 180, 0, 0.8);
+            font-weight: 500;
+            margin-left: 16px;
+            font-size: 0.8em;
+        }
+
+        .viz-tool-item::before {
+            content: "•";
+            margin-right: 6px;
+            opacity: 0.8;
+        }
+
+        .prompt:hover {
+            background-color: var(--prompt-hover);
+            border-color: var(--prompt-number-color);
+        }
+
+        .prompt::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background-color: var(--prompt-number-color);
+            opacity: 0.3;
+        }
+
+        .prompt-number {
+            color: var(--prompt-number-color);
+            font-weight: 500;
+            margin-right: 12px;
+            font-size: 0.95em;
+            opacity: 0.9;
+        }
+
+        .prompt-text {
+            color: var(--prompt-text-color);
+            display: inline;
+        }
+
+        .highlight {
+            color: var(--accent-color);
+            font-weight: 500;
+            padding: 0 2px;
+        }
+
+        .prompt-boxes {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            border-top: 1px dotted var(--prompt-border);
+            padding-top: 12px;
+        }
+
+        .prompt-box {
+            background-color: var(--prompt-hover);
+            border: 1px dotted var(--prompt-number-color);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            color: var(--prompt-text-color);
+            opacity: 0.8;
+            transition: all 0.2s ease;
+        }
+
+        .prompt-box:hover {
+            border-style: solid;
+            opacity: 1;
+            background-color: var(--prompt-bg);
+        }
+
+        @media (max-width: 1024px) {
+            .workflow-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 25px;
+            }
+            
+            .substep {
+                padding-left: 28px;
+            }
+            
+            .substep::before {
+                width: 24px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .workflow-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .container {
+                padding: 20px 15px;
+            }
+            
+            h1 {
+                font-size: 2em;
+                margin-bottom: 40px;
+            }
+            
+            .step-header {
+                padding: 15px;
+            }
+            
+            .substep {
+                padding-left: 24px;
+            }
+            
+            .substep::before {
+                width: 20px;
+            }
+            
+            .prompt {
+                padding: 14px;
+                margin: 10px 0;
+            }
+            
+            .prompt-boxes {
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+            
+            .prompt-box {
+                font-size: 0.75em;
+                padding: 3px 6px;
+            }
+            
+            .main-toggle-content {
+                padding: 15px;
+            }
+        }
+
+        .main-toggle {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+            background-color: var(--card-bg);
+        }
+
+        .main-toggle-header {
+            padding: 15px 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--card-bg);
+        }
+
+        .toggle-title {
+            font-size: 1.2em;
+            font-weight: 500;
+            color: var(--text-color);
+        }
+
+        .main-toggle-content {
+            max-height: none;
+            overflow: visible;
+            transition: all 0.2s ease;
+            padding: 20px;
+        }
+
+        .main-toggle.collapsed .main-toggle-content {
+            max-height: 0;
+            overflow: hidden;
+        }
+
+        .main-toggle.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .main-toggle .toggle-icon {
+            color: var(--accent-color);
+            font-size: 1.2em;
+            transition: transform 0.2s ease;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Drug Discovery Workflow</h1>
+        
+        <div class="main-toggle">
+            <div class="main-toggle-header">
+                <div class="toggle-title">A. Target Identification</div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            <div class="main-toggle-content">
+                <div class="workflow-grid">
+                    <div class="step">
+                        <div class="step-header">
+                            <div>
+                                <div class="step-number">1. Mine Human Genetic Variation for Target Genes</div>
+                                <div class="step-summary">Genetic analysis and mutation studies</div>
+                            </div>
+                            <div class="toggle-icon">▼</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="substep" data-number="1.1">
+                                <div class="substep-header">
+                                    <span>Genome sequencing analysis</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"List obesity-associated SNPs near the GLP1 and GLP1R loci from human genome sequencing data."</span>
+                                        
+                                        <div class="viz-box">
+                                            <div class="viz-title">Mountain Range Plot of SNP Significance</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">PLINK</div>
+                                            <div class="viz-tool-item">LocusZoom</div>
+                                            <div style="margin-top: 12px; text-align: center;">
+                                                <div style="display: inline-block; border: 1px solid rgba(0, 180, 0, 0.3); padding: 8px; border-radius: 2px;">
+                                                    <img src="1.1.1.png" alt="Mountain Range Plot of SNP Significance" style="max-width: 180px; height: auto; display: block;">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Microscope View of GLP1/GLP1R Region</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">LocusZoom</div>
+                                            <div class="viz-tool-item">UCSC Genome Browser</div>
+                                            <div style="margin-top: 12px; text-align: center;">
+                                                <div style="display: inline-block; border: 1px solid rgba(0, 180, 0, 0.3); padding: 8px; border-radius: 2px;">
+                                                    <img src="1.1.2.png" alt="Microscope View of GLP1/GLP1R Region" style="max-width: 180px; height: auto; display: block;">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Excel-Style SNP Data Grid</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">PLINK</div>
+                                            <div class="viz-tool-item">ANNOVAR</div>
+                                            <div style="margin-top: 12px; text-align: center;">
+                                                <div style="display: inline-block; border: 1px solid rgba(0, 180, 0, 0.3); padding: 8px; border-radius: 2px;">
+                                                    <img src="1.1.3.png" alt="Excel-Style SNP Data Grid" style="max-width: 180px; height: auto; display: block;">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Color-Coded SNP Relationship Grid</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">Haploview</div>
+                                            <div class="viz-tool-item">PLINK</div>
+                                            <div style="margin-top: 12px; text-align: center;">
+                                                <div style="display: inline-block; border: 1px solid rgba(0, 180, 0, 0.3); padding: 8px; border-radius: 2px;">
+                                                    <img src="1.1.4.png" alt="Color-Coded SNP Relationship Grid" style="max-width: 180px; height: auto; display: block;">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Population Comparison Bar Charts</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">PLINK</div>
+                                            <div class="viz-tool-item">R (ggplot2)</div>
+                                            <div style="margin-top: 12px; text-align: center;">
+                                                <div style="display: inline-block; border: 1px solid rgba(0, 180, 0, 0.3); padding: 8px; border-radius: 2px;">
+                                                    <img src="1.1.5.png" alt="Population Comparison Bar Charts" style="max-width: 180px; height: auto; display: block;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Show rare coding variants in GLP1R found in obese vs non-obese populations."</span>
+                                        
+                                        <div class="viz-box">
+                                            <div class="viz-title">Variant Frequency Comparison Plot</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">gnomAD</div>
+                                            <div class="viz-tool-item">R (ggplot2)</div>
+                                            <div style="margin-top: 12px; text-align: center;">
+                                                <div style="display: inline-block; border: 1px solid rgba(0, 180, 0, 0.3); padding: 8px; border-radius: 2px;">
+                                                    <img src="1.2.1.png" alt="Variant Frequency Comparison Plot" style="max-width: 180px; height: auto; display: block;">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Protein Domain Mutation Map</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">UniProt</div>
+                                            <div class="viz-tool-item">Pfam</div>
+                                            <div style="margin-top: 12px; text-align: center;">
+                                                <div style="display: inline-block; border: 1px solid rgba(0, 180, 0, 0.3); padding: 8px; border-radius: 2px;">
+                                                    <img src="1.2.2.png" alt="Protein Domain Mutation Map" style="max-width: 180px; height: auto; display: block;">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Variant Annotation Table</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">ANNOVAR</div>
+                                            <div class="viz-tool-item">VEP</div>
+                                            <div style="margin-top: 12px; text-align: center;">
+                                                <div style="display: inline-block; border: 1px solid rgba(0, 180, 0, 0.3); padding: 8px; border-radius: 2px;">
+                                                    <img src="1.2.3.png" alt="Variant Annotation Table" style="max-width: 180px; height: auto; display: block;">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Functional Impact Prediction</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">SIFT</div>
+                                            <div class="viz-tool-item">PolyPhen-2</div>
+                                            <div style="margin-top: 12px; text-align: center;">
+                                                <div style="display: inline-block; border: 1px solid rgba(0, 180, 0, 0.3); padding: 8px; border-radius: 2px;">
+                                                    <img src="1.2.4.png" alt="Functional Impact Prediction" style="max-width: 180px; height: auto; display: block;">
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Population Stratification Analysis</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">PLINK</div>
+                                            <div class="viz-tool-item">EIGENSTRAT</div>
+                                            <div style="margin-top: 12px; text-align: center;">
+                                                <div style="display: inline-block; border: 1px solid rgba(0, 180, 0, 0.3); padding: 8px; border-radius: 2px;">
+                                                    <img src="1.2.5.png" alt="Population Stratification Analysis" style="max-width: 180px; height: auto; display: block;">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Identify exonic mutations affecting GLP1 signaling pathway genes from gnomAD or 1000 Genomes."</span>
+                                        
+                                        <div class="viz-box">
+                                            <div class="viz-title">Pathway Gene Mutation Landscape</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">gnomAD</div>
+                                            <div class="viz-tool-item">KEGG Pathway</div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Exonic Variant Frequency Heatmap</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">1000 Genomes</div>
+                                            <div class="viz-tool-item">R (pheatmap)</div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Mutation Burden Comparison</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">gnomAD</div>
+                                            <div class="viz-tool-item">Mann-Whitney U Test</div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Protein Interaction Network with Mutations</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">STRING</div>
+                                            <div class="viz-tool-item">Cytoscape</div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Conservation Analysis of Mutated Residues</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">PhyloP</div>
+                                            <div class="viz-tool-item">GERP++</div>
+                                        </div>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Extract disease associations from GLP1R-related patent literature."</span>
+                                        
+                                        <div class="viz-box">
+                                            <div class="viz-title">Patent-Disease Association Network</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">PatentScope</div>
+                                            <div class="viz-tool-item">Cytoscape</div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Disease Frequency Timeline</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">USPTO</div>
+                                            <div class="viz-tool-item">R (ggplot2)</div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Therapeutic Indication Heatmap</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">Google Patents</div>
+                                            <div class="viz-tool-item">R (pheatmap)</div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Patent-Disease Classification Table</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">PatentSight</div>
+                                            <div class="viz-tool-item">Excel</div>
+                                        </div>
+
+                                        <div class="viz-box">
+                                            <div class="viz-title">Disease-Specific Mechanism Diagram</div>
+                                            <div class="viz-tools">Tools needed:</div>
+                                            <div class="viz-tool-item">Pathway Studio</div>
+                                            <div class="viz-tool-item">BioRender</div>
+                                        </div>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Identify disease-specific expression patterns of GLP1R from literature."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Map disease progression stages where GLP1R shows therapeutic potential."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Extract disease-specific biomarker associations with GLP1R activity."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Identify disease subtypes where GLP1R shows differential expression or function."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Map disease-specific therapeutic outcomes related to GLP1R modulation."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Extract disease-specific adverse events associated with GLP1R-targeted therapies."</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="substep" data-number="5.2">
+                                <div class="substep-header">
+                                    <span>Unmet needs analysis</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"Identify gaps in current GLP1R-targeted therapies from clinical literature."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Extract limitations of existing GLP1R modulators from research papers."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Map therapeutic areas where GLP1R modulation shows promise but lacks approved drugs."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Identify patient populations underserved by current GLP1R-targeted treatments."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Extract safety and efficacy concerns with existing GLP1R therapies."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Map delivery and formulation challenges in GLP1R-targeted drug development."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Identify resistance mechanisms to current GLP1R-targeted therapies."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Extract compliance and adherence issues with existing GLP1R treatments."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Map cost-effectiveness gaps in current GLP1R-targeted therapies."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Identify opportunities for improved GLP1R-targeted drug delivery systems."</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="substep" data-number="5.3">
+                                <div class="substep-header">
+                                    <span>Disease concept mapping</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"Map disease concepts and terminology associated with GLP1R in medical literature."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Identify disease hierarchies and relationships in GLP1R-related conditions."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Extract disease progression pathways involving GLP1R signaling."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Map comorbidity patterns in diseases associated with GLP1R dysfunction."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Identify disease-specific molecular pathways involving GLP1R."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Map disease-specific cellular contexts where GLP1R shows therapeutic relevance."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Extract disease-specific biomarkers and their relationship to GLP1R activity."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Map disease-specific therapeutic targets in GLP1R signaling pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Identify disease-specific drug response patterns in GLP1R-targeted therapies."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Map disease-specific clinical outcomes related to GLP1R modulation."</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="substep" data-number="5.4">
+                                <div class="substep-header">
+                                    <span>Gene function mining</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"Extract functional annotations of GLP1R from research literature."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Identify GLP1R's role in cellular processes from experimental studies."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Map GLP1R's molecular interactions from published data."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Extract regulatory mechanisms controlling GLP1R expression and activity."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Identify post-translational modifications of GLP1R from literature."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Map GLP1R's tissue-specific functions from experimental data."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Extract structural-functional relationships of GLP1R from studies."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Identify GLP1R's role in signal transduction pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Map GLP1R's involvement in cellular responses and adaptations."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Extract GLP1R's role in metabolic homeostasis from literature."</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="substep" data-number="5.5">
+                                <div class="substep-header">
+                                    <span>Text categorization</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"Categorize GLP1R-related literature by research methodology."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Classify GLP1R studies by experimental approach and techniques."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Organize GLP1R literature by disease context and therapeutic area."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Categorize GLP1R studies by molecular pathway and biological process."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Classify GLP1R literature by study type (basic, translational, clinical)."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Organize GLP1R studies by experimental model system used."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Categorize GLP1R literature by therapeutic intervention type."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Classify GLP1R studies by outcome measures and endpoints."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Organize GLP1R literature by publication type and impact."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Categorize GLP1R studies by data quality and evidence level."</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="substep" data-number="5.6">
+                                <div class="substep-header">
+                                    <span>Topic clustering</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"Cluster GLP1R literature by research themes and topics."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Identify emerging research trends in GLP1R studies."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Group GLP1R publications by therapeutic applications."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Cluster GLP1R studies by molecular mechanisms investigated."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Identify research gaps and opportunities in GLP1R literature."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Group GLP1R publications by experimental approaches."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Cluster GLP1R studies by disease contexts and applications."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Identify collaborative research patterns in GLP1R studies."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Group GLP1R publications by technological innovations."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Cluster GLP1R studies by therapeutic development stage."</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-header">
+                            <div>
+                                <div class="step-number">6. Investigate Biological Pathways and Networks for Target Identification</div>
+                                <div class="step-summary">Pathway analysis and network biology</div>
+                            </div>
+                            <div class="toggle-icon">▼</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="substep" data-number="6.1">
+                                <div class="substep-header">
+                                    <span>Pathway involvement analysis</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"Identify pathways where GLP1R is involved from KEGG and Reactome databases."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Map GLP1R's role in metabolic signaling pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Analyze GLP1R's involvement in appetite regulation pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Identify GLP1R's role in glucose homeostasis pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Map GLP1R's involvement in insulin secretion pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Analyze GLP1R's role in gastrointestinal hormone signaling."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Identify GLP1R's involvement in cardiovascular function pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Map GLP1R's role in neuroendocrine signaling pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Analyze GLP1R's involvement in cellular energy metabolism pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Identify GLP1R's role in disease-specific pathway dysregulation."</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="substep" data-number="6.2">
+                                <div class="substep-header">
+                                    <span>Key entity identification</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"Identify key proteins that interact with GLP1R in signaling pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Map transcription factors regulating GLP1R expression."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Identify downstream effectors of GLP1R signaling."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Map co-receptors and accessory proteins for GLP1R."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Identify regulatory proteins controlling GLP1R activity."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Map adaptor proteins linking GLP1R to intracellular pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Identify kinases and phosphatases regulating GLP1R function."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Map ubiquitination and degradation regulators of GLP1R."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Identify chaperone proteins assisting GLP1R folding and trafficking."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Map disease-specific protein interactions with GLP1R."</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="substep" data-number="6.3">
+                                <div class="substep-header">
+                                    <span>Network vulnerability assessment</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"Identify critical nodes in GLP1R signaling networks."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Map network bottlenecks in GLP1R pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Identify compensatory mechanisms in GLP1R networks."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Map feedback loops in GLP1R signaling pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Identify redundant pathways parallel to GLP1R signaling."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Map disease-specific vulnerabilities in GLP1R networks."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Identify drug resistance mechanisms in GLP1R pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Map tissue-specific network adaptations in GLP1R signaling."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Identify age-related changes in GLP1R network robustness."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Map genetic variation effects on GLP1R network stability."</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-header">
+                            <div>
+                                <div class="step-number">7. Conduct Gene Selection and Prioritization</div>
+                                <div class="step-summary">Target ranking and filtering</div>
+                            </div>
+                            <div class="toggle-icon">▼</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="substep" data-number="7.1">
+                                <div class="substep-header">
+                                    <span>Gene selection methods</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"Apply statistical methods to identify differentially expressed genes in disease states."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Use machine learning algorithms to classify genes based on disease association."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Implement network-based approaches to identify hub genes in disease pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Apply co-expression analysis to identify functionally related gene clusters."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Use evolutionary conservation metrics to identify essential genes."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Apply functional enrichment analysis to identify genes with relevant biological processes."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Use genetic association data to identify disease-linked genes."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Apply pathway analysis to identify genes in disease-relevant pathways."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Use protein-protein interaction data to identify functionally connected genes."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Apply multi-omics integration to identify genes with consistent signals across data types."</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="substep" data-number="7.2">
+                                <div class="substep-header">
+                                    <span>Target prioritization</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"Rank genes based on disease association strength and consistency."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Prioritize genes with high expression in disease-relevant tissues."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Score genes based on druggability and structural accessibility."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Prioritize genes with validated functional roles in disease mechanisms."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Rank genes based on the availability of existing chemical probes and inhibitors."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Prioritize genes with clear phenotypic effects in genetic perturbation studies."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Score genes based on the potential for selective targeting without off-target effects."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Prioritize genes with biomarkers that can be used to monitor target engagement."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Rank genes based on the potential for therapeutic intervention at different disease stages."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Prioritize genes with the potential for combination therapy approaches."</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="substep" data-number="7.3">
+                                <div class="substep-header">
+                                    <span>Disease criteria organization</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"Define disease-specific criteria for target selection based on pathophysiology."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Organize disease subtypes and their molecular characteristics for targeted therapy."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Establish disease progression stages and their molecular signatures."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Define disease-specific therapeutic windows for intervention."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Organize disease-specific biomarkers for patient stratification."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Establish disease-specific endpoints for therapeutic evaluation."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Define disease-specific resistance mechanisms to consider in target selection."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Organize disease-specific comorbidities and their impact on target selection."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Establish disease-specific safety considerations for target selection."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Define disease-specific regulatory requirements for target validation."</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="substep" data-number="7.4">
+                                <div class="substep-header">
+                                    <span>Ontology refinement</span>
+                                    <span class="substep-toggle">▼</span>
+                                </div>
+                                <div class="substep-content">
+                                    <div class="prompt">
+                                        <span class="prompt-number">1.</span>
+                                        <span class="prompt-text">"Refine gene ontology terms to accurately represent target function in disease context."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">2.</span>
+                                        <span class="prompt-text">"Update pathway annotations to reflect disease-specific signaling networks."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">3.</span>
+                                        <span class="prompt-text">"Refine molecular function annotations based on experimental evidence."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">4.</span>
+                                        <span class="prompt-text">"Update cellular component annotations to reflect disease-specific localization."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">5.</span>
+                                        <span class="prompt-text">"Refine biological process annotations to include disease-specific functions."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">6.</span>
+                                        <span class="prompt-text">"Update protein domain annotations based on structural studies."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">7.</span>
+                                        <span class="prompt-text">"Refine interaction annotations to include disease-specific protein complexes."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">8.</span>
+                                        <span class="prompt-text">"Update regulatory annotations to reflect disease-specific expression control."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">9.</span>
+                                        <span class="prompt-text">"Refine phenotype annotations to include disease-specific effects."</span>
+                                    </div>
+                                    <div class="prompt">
+                                        <span class="prompt-number">10.</span>
+                                        <span class="prompt-text">"Update therapeutic target annotations to reflect druggability and clinical relevance."</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-header">
+                            <div>
+                                <div class="step-number">8. Assess Initial Target Druggability (In Silico)</div>
+                                <div class="step-summary">Drug binding potential assessment</div>
+                            </div>
+                            <div class="toggle-icon">▼</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="substep" data-number="8.1">Druggability assessment</div>
+                            <div class="substep" data-number="8.2">3D structure analysis</div>
+                            <div class="substep" data-number="8.3">Binding site identification</div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-header">
+                            <div>
+                                <div class="step-number">9. Leverage High-Throughput Screening (HTS) for Target Discovery (Indirect)</div>
+                                <div class="step-summary">Large-scale compound screening</div>
+                            </div>
+                            <div class="toggle-icon">▼</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="substep" data-number="9.1">Phenotypic screening (PDD)</div>
+                            <div class="substep" data-number="9.2">Compound library analysis</div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-header">
+                            <div>
+                                <div class="step-number">10. Employ Functional Genetic Screens</div>
+                                <div class="step-summary">Gene function disruption studies</div>
+                            </div>
+                            <div class="toggle-icon">▼</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="substep" data-number="10.1">Haploid cell genetics</div>
+                            <div class="substep" data-number="10.2">RNAi screening</div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-header">
+                            <div>
+                                <div class="step-number">11. Utilize Chemical Genetic Screens</div>
+                                <div class="step-summary">Chemical-genetic interaction mapping</div>
+                            </div>
+                            <div class="toggle-icon">▼</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="substep" data-number="11.1">Forward genetic screening</div>
+                            <div class="substep" data-number="11.2">Small molecule integration</div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-header">
+                            <div>
+                                <div class="step-number">12. Analyze Gene and Protein Expression Correlation</div>
+                                <div class="step-summary">Expression pattern analysis</div>
+                            </div>
+                            <div class="toggle-icon">▼</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="substep" data-number="12.1">Expression correlation analysis</div>
+                            <div class="substep" data-number="12.2">Tissue specificity assessment</div>
+                            <div class="substep" data-number="12.3">Accessibility filtering (<span class="highlight">GTEx</span>)</div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-header">
+                            <div>
+                                <div class="step-number">13. Consider Subcellular Localization</div>
+                                <div class="step-summary">Cellular compartment analysis</div>
+                            </div>
+                            <div class="toggle-icon">▼</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="substep" data-number="13.1">Location-disease correlation</div>
+                            <div class="substep" data-number="13.2">Localization prediction</div>
+                        </div>
+                    </div>
+
+                    <div class="step">
+                        <div class="step-header">
+                            <div>
+                                <div class="step-number">14. Integrate Computational Methodologies for Novel Target Identification</div>
+                                <div class="step-summary">Multi-approach target prediction</div>
+                            </div>
+                            <div class="toggle-icon">▼</div>
+                        </div>
+                        <div class="step-content">
+                            <div class="substep" data-number="14.1">In silico methodology review</div>
+                            <div class="substep" data-number="14.2">Multi-method integration</div>
+                            <div class="substep" data-number="14.3">Machine learning models (<span class="highlight">QSAR</span>)</div>
+                            <div class="substep" data-number="14.4">Ligand-based prediction</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="main-toggle">
+            <div class="main-toggle-header">
+                <div class="toggle-title">B. Target Validation</div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            <div class="main-toggle-content">
+                <div class="workflow-grid">
+                </div>
+            </div>
+        </div>
+
+        <div class="main-toggle">
+            <div class="main-toggle-header">
+                <div class="toggle-title">C. Hit Identification (Screening)</div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            <div class="main-toggle-content">
+                <div class="workflow-grid">
+                </div>
+            </div>
+        </div>
+
+        <div class="main-toggle">
+            <div class="main-toggle-header">
+                <div class="toggle-title">D. Hit-to-Lead (H2L) Optimization</div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            <div class="main-toggle-content">
+                <div class="workflow-grid">
+                </div>
+            </div>
+        </div>
+
+        <div class="main-toggle">
+            <div class="main-toggle-header">
+                <div class="toggle-title">E. Lead Optimization</div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            <div class="main-toggle-content">
+                <div class="workflow-grid">
+                </div>
+            </div>
+        </div>
+
+        <div class="main-toggle">
+            <div class="main-toggle-header">
+                <div class="toggle-title">F. In Vitro & In Vivo Preclinical Testing</div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            <div class="main-toggle-content">
+                <div class="workflow-grid">
+                </div>
+            </div>
+        </div>
+
+        <div class="main-toggle">
+            <div class="main-toggle-header">
+                <div class="toggle-title">G. Toxicology Studies</div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            <div class="main-toggle-content">
+                <div class="workflow-grid">
+                </div>
+            </div>
+        </div>
+
+        <div class="main-toggle">
+            <div class="main-toggle-header">
+                <div class="toggle-title">H. Investigational New Drug (IND) Application</div>
+                <div class="toggle-icon">▼</div>
+            </div>
+            <div class="main-toggle-content">
+                <div class="workflow-grid">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.querySelectorAll('.step-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const step = header.parentElement;
+                step.classList.toggle('active');
+            });
+        });
+
+        document.querySelectorAll('.substep-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const substep = header.parentElement;
+                substep.classList.toggle('active');
+            });
+        });
+
+        document.querySelector('.main-toggle-header').addEventListener('click', () => {
+            const mainToggle = document.querySelector('.main-toggle');
+            mainToggle.classList.toggle('collapsed');
+        });
+    </script>
+</body>
+</html> 
